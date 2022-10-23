@@ -1,3 +1,29 @@
+# Docker and singularity version for MIAL (fast version)
+
+```docker run --gpus device=0 --shm-size=10gb -v /home/pmacias/nnunet_root_test:/opt/nnunet_resources -it petermcgor/nnunet:0.0.1 bash```
+
+## Folder structure. The root file must contain the folders with the literal names ```nnUNet_raw_data```, ```nnUNet_preprocessed``` and ```nnUNet_trained_models```
+```
+├── nnUNet_preprocessed
+│   
+├── nnUNet_raw_data
+│   ├── Task002_Heart
+│   │   ├── dataset.json
+│   │   ├── imagesTr
+│   │   ├── imagesTs
+│   │   └── labelsTr
+│   ├── Task03_Brain
+│       ├── dataset.json
+│       ├── imagesTr
+│       ├── imagesTs
+│       └── labelsTr
+└── nnUNet_trained_models
+```
+```nnUNet_raw_data``` can contains several datasets. Structure a the rest of the folders automatica population is shown in the following main text 
+
+
+# nnU-Net
+
 **[2020_10_21] Update:** We now have documentation for [common questions](documentation/common_questions.md) and
 [common issues](documentation/common_problems_and_solutions.md). We now also provide [reference epoch times for
 several datasets and tips on how to identify bottlenecks](documentation/expected_epoch_times.md).
