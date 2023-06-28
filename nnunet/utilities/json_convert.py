@@ -33,7 +33,6 @@ class nnUNetSumReader:
             [evaluation_labels.pop(k) for k in ['reference', 'test']]
             for label, metrics in evaluation_labels.items():
                 ref_tst['label'] = label
-                print({m:val for m,val in metrics.items()})
                 self.results.append({**ref_tst,**{m:val for m,val in metrics.items()}})
                 
     def get_data_frame(self)->pd.DataFrame:
@@ -58,4 +57,53 @@ if __name__ == "__main__":
     print(read_json_as_dict(jsonFile)['results']['all'][0].keys())
     print()
     print(nnUNetSumReader(jsonFile))
-    nnUNetSumReader(jsonFile).get_csv('/tmp/test.csv')
+    nnUNetSumReader(jsonFile).get_csv('/tmp/test2.csv')
+    
+    import glob
+    from nnunet.evaluation.evaluator import aggregate_scores  
+    #from nnunet.evaluation.metrics import ConfusionMatrix, ALL_METRICS
+    import itertools
+    #pairs = [('/data/FLAWS_all_data/data_23_12_2022/Segmentations_used_for_IR/Segmentations_used_for_IR/Final_Segmentations/MP2RAGE/Rater1/INsIDER_P022_TP2_MP2RAGE_JM.nii.gz',
+    #          '/data/FLAWS_all_data/data_23_12_2022/Segmentations_used_for_IR/Segmentations_used_for_IR/Final_Segmentations/MP2RAGE/Rater2/INsIDER_P022_TP2_MP2RAGE_CT.nii.gz')]
+    
+    #aggregate_scores(pairs, labels = (1,2),  num_threads=12, json_output_file=os.path.join('/tmp', "summary.json"))
+    
+    main_dir = '/data/FLAWS_all_data/data_23_12_2022/Segmentations_used_for_IR/Segmentations_used_for_IR/Final_Segmentations'
+    sequences = ['MP2RAGE','FLAWS_HCO_DEN', 'FLAWS_MIN']
+    raters = ['Rater1', 'Rater2','Rater3', 'consensus']
+
+    combs = list(itertools.product(sequences, raters))
+    #print(combs_list)
+    for i,pair in enumerate(combs):
+        for j,pair2 in enumerate(combs[i+1:]):
+            print(i,j,pair, pair2)
+            preds_folder = os.path.join(main_dir, pair[0], pair[1])
+            ref_folder = os.path.join(main_dir, pair2[0], pair2[1])
+            list_of_pairs = []
+            for pred in glob.glob(os.path.join(preds_folder, "*.nii.gz")):
+                subject_prefix = pred.split(os.sep)[-1][:13]
+                list_of_pairs.append((pred, glob.glob(os.path.join(ref_folder, subject_prefix+'*.nii.gz'))[0]))
+        
+            out_file = os.path.join("/tmp", pair[0]+'_'+pair[1]+'_'+pair2[0]+'_'+pair2[1]+'.json')
+            try:
+                aggregate_scores(list_of_pairs, labels=(1,2), num_threads=12,  json_output_file=os.path.join(out_file))
+            except:
+                print("Different dimensions")
+                pass
+    
+    
+    #pd.concat([nnUNetSumReader(jsonFile).get_data_frame() for jsonFile in glob.glob('/tmp/*.json')]).to_csv('/tmp/test.csv')
+    df_list = []
+    for df in [nnUNetSumReader(jsonFile).get_data_frame() for jsonFile in glob.glob('/tmp/*.json')]:
+        df['rater_ref'] = df.ref.apply(lambda x: x.split(os.sep)[-1].split('_')[-1].split('.nii')[0])
+        df['rater_tst'] = df.tst.apply(lambda x: x.split(os.sep)[-1].split('_')[-1].split('.nii')[0])
+        df['mod_ref'] = df.ref.apply(lambda x: x.split(os.sep)[-1].split('_')[-2])
+        df['mod_tst'] = df.tst.apply(lambda x: x.split(os.sep)[-1].split('_')[-2])
+        df['sub_ref'] = df.ref.apply(lambda x: x.split(os.sep)[-1].split('_')[1])
+        df['sub_tst'] = df.tst.apply(lambda x: x.split(os.sep)[-1].split('_')[1])
+
+        df_list.append(df)
+    pd.concat(df_list).to_csv('/data/FLAWS_all_data/data_23_12_2022/Segmentations_used_for_IR/Segmentations_used_for_IR/Final_Segmentations/inter-rater_measures.csv')
+            
+
+    
