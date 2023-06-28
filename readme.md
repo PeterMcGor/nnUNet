@@ -22,6 +22,9 @@
 ```nnUNet_raw_data``` can contains several datasets. Structure a the rest of the folders automatica population is shown in the following main text 
 
 
+To run the docker within a slurm cluster with no docker but singularity installed (e.g., CHUV cluster), the same structure must be present and binded in the bash script needed. We provided a minimun example in the ```min_nunet_slurm.sh``` (check here) file --> ```sbatch min_nunet_slurm.sh``` 
+
+
 # nnU-Net
 
 **[2020_10_21] Update:** We now have documentation for [common questions](documentation/common_questions.md) and
