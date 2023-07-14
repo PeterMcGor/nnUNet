@@ -1,0 +1,5 @@
+from nnunetv2.training.nnUNetTrainer.variants.loss.nnUNetTrainerBlobLoss import nnUNetTrainerBlobLoss
+from nnunetv2.training.nnUNetTrainer.variants.network_architecture.nnUNetTrainerNoDeepSupervision import nnUNetTrainerNoDeepSupervision
+
+class nnUNetTrainerBlobLossNoDS(nnUNetTrainerBlobLoss, nnUNetTrainerNoDeepSupervision):
+    pass
