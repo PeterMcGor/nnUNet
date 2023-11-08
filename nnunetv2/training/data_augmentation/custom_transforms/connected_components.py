@@ -28,7 +28,9 @@ class ConnectedComponents(AbstractTransform):
         # Assumes that the segmentation is going to be a single mask (channel), so [B,C,D,W,H], C=1, index 0
         labeled_image = [] 
         unique_components = []
+        deep_scales = isinstance(data_dict[self.seg_key], list) 
         for i, seg in enumerate(data_dict[self.seg_key]):
+            seg = np.expand_dims(seg, axis=0) if not deep_scales else seg
             conected_comps = np.zeros_like(seg)
             n_comps = []
             for j,deep_scale in enumerate(seg): # label does not work in more than 3D
@@ -38,7 +40,8 @@ class ConnectedComponents(AbstractTransform):
             labeled_image.append(conected_comps)
             unique_components.append(n_comps)
             
-        data_dict[self.output_key] = labeled_image
+        data_dict[self.output_key] = labeled_image if deep_scales else np.concatenate(labeled_image, axis = 0)
+        #print("TOGO",data_dict[self.output_key].shape)
         data_dict[self.n_comp] = unique_components
 
         return data_dict 

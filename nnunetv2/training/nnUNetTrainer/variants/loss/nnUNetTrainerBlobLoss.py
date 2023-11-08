@@ -9,8 +9,7 @@ import numpy as np
 import torch
 
 from nnunetv2.training.loss.deep_supervision import DeepSupervisionWrapper
-from nnunetv2.training.loss.robust_ce_loss import RobustCrossEntropyLoss
-from nnunetv2.training.loss.blob_loss import RobustCrossEntropyLoss2, BlobLoss
+from nnunetv2.training.loss.blob_loss import BlobLoss
 
 def add_connected_components_transf(transforms: Compose, 
                                     transform_keys: List[str] = ['data', 'target', KEYS.COMPONENTS], convert_type:str = 'float',
@@ -64,17 +63,23 @@ class nnUNetTrainerBlobLoss(nnUNetTrainer):
     def train_step(self, batch: dict) -> dict:
         # nnUNetTrainer call the loss by retriving the 'target' data in each yielded batch and nothing else.  [Line 854](#nnUNetTrainer-train_step-L854) 
         # in this method performs a crucial calculation. This way there isno need to make extra modifications
-        conc_targ = [torch.cat((t, batch[KEYS.COMPONENTS][i]), dim=1) for i,t in enumerate(batch['target'])]
+        if isinstance(batch['target'], list): 
+            #conc_targ = [torch.cat((t, batch[KEYS.COMPONENTS][i]), dim=1) for i,t in enumerate(batch['target'])]
+            conc_targ = [torch.stack((t, batch[KEYS.COMPONENTS][i]), dim=0) for i,t in enumerate(batch['target'])]
+        else:
+            #conc_targ = torch.cat(batch['target'], batch[KEYS.COMPONENTS], dim=1)
+            conc_targ = torch.stack([batch['target'], batch[KEYS.COMPONENTS]], dim=0)
         return super().train_step({'data':batch['data'], 'target':conc_targ})
         
         
     def _build_loss(self):
         assert not self.label_manager.has_regions, 'regions not supported by this trainer'
+        dim = len(self.configuration_manager.patch_size)
         loss = super()._build_loss()
         if isinstance(loss, DeepSupervisionWrapper):
-            loss.loss = BlobLoss(global_loss_criterium=loss.loss, blob_loss_criterium=loss.loss)
+            loss.loss = BlobLoss(global_loss_criterium=loss.loss, blob_loss_criterium=loss.loss, expected_dim=dim)
         else: 
-            loss = BlobLoss(global_loss_criterium=loss, blob_loss_criterium=loss)
+            loss = BlobLoss(global_loss_criterium=loss, blob_loss_criterium=loss, expected_dim=dim)
         return loss
         
 
