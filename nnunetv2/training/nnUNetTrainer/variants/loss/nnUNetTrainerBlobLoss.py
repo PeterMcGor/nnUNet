@@ -5,7 +5,7 @@ from nnunetv2.training.nnUNetTrainer.nnUNetTrainer import nnUNetTrainer
 from nnunetv2.training.loss.blob_loss import BlobLoss
 from nnunetv2.training.data_augmentation.custom_transforms.connected_components import (
     ConnectedComponents,
-    KEYS,
+    KEYS, MergeSemanticInstace
 )
 from nnunetv2.training.loss.dice import get_tp_fp_fn_tn
 
@@ -43,6 +43,8 @@ def add_connected_components_transf(
     transforms.transforms.pop()
     # Add the Transformations to enable loss per component (blob loss)
     transforms.transforms.append(ConnectedComponents(**kwargs))
+    #
+    transforms.transforms.append(MergeSemanticInstace())
     # Finally add the tranformation array --> Tensor
     transforms.transforms.append(NumpyToTensor(transform_keys, convert_type))
 
@@ -101,16 +103,16 @@ class nnUNetTrainerBlobLoss(nnUNetTrainer):
             self.device.type, enabled=True
         ) if self.device.type == "cuda" else dummy_context():
             output = self.network(data)
-            # del data
-            #output[0].retain_grad()
-            #output[1].retain_grad()
+            output[0].retain_grad()
+            #del data
             l = self.loss(output, target)
             #print("***Grads AfterLoss LOSS blob***",torch.mean(output[0].grad),output[0].grad.shape,
             #    torch.mean(output[1].grad),output[1].grad.shape,l.shape,torch.mean(torch.tensor(self.loss.loss.blob_loss_mean)),target[0].shape)
 
         if self.grad_scaler is not None:
-            self.grad_scaler.scale(l).backward()
             #print("Grads AfterLoss LOSS", torch.mean(output[0].grad))
+            self.grad_scaler.scale(l).backward()
+            #print("Grads AfterLoss LOSS2", torch.mean(output[0].grad))
             self.grad_scaler.unscale_(self.optimizer)
             #print("Grads AfterLoss LOSS2", torch.mean(output[0].grad))
             torch.nn.utils.clip_grad_norm_(self.network.parameters(), 12)
@@ -120,10 +122,10 @@ class nnUNetTrainerBlobLoss(nnUNetTrainer):
             l.backward()
             torch.nn.utils.clip_grad_norm_(self.network.parameters(), 12)
             self.optimizer.step()
-        return {
-            "loss": l.detach().cpu().numpy()
-            + torch.mean(torch.tensor(self.loss.loss.blob_loss_mean)).cpu().numpy()
-        }
+        #with torch.no_grad():
+        #    blob_loss = torch.mean(torch.tensor(self.loss.loss.blob_loss_mean)).cpu().numpy()
+        #torch.cuda.empty_cache()
+        return {"loss": l.detach().cpu().numpy()}
 
     def validation_step(self, batch: dict) -> dict:
         data = batch["data"]
@@ -148,7 +150,8 @@ class nnUNetTrainerBlobLoss(nnUNetTrainer):
 
         # we only need the output with the highest output resolution
         output = output[0]
-        target = target[0][0]  # Just the semantic part
+        #target = target[0][0]  # Just the semantic part
+        target,_ = MergeSemanticInstace().unmerge(target[0].long())
 
         # the following is needed for online evaluation. Fake dice (green line)
         axes = [0] + list(range(2, output.ndim))
@@ -192,8 +195,9 @@ class nnUNetTrainerBlobLoss(nnUNetTrainer):
             fp_hard = fp_hard[1:]
             fn_hard = fn_hard[1:]
 
+        #torch.cuda.empty_cache()
         return {
-            "loss": l.detach().cpu().numpy()  + torch.mean(torch.tensor(self.loss.loss.blob_loss_mean)).cpu().numpy(),
+            "loss": l.detach().cpu().numpy() ,
             "tp_hard": tp_hard,
             "fp_hard": fp_hard,
             "fn_hard": fn_hard,
@@ -217,6 +221,6 @@ class nnUNetTrainerBlobLoss(nnUNetTrainer):
             )
         else:
             loss = BlobLoss(
-                global_loss_criterium=loss, blob_loss_criterium=loss, trainer=self
+                global_loss_criterium=loss, blob_loss_criterium=loss, trainer=self,scale_weights=weights
             )
         return loss
