@@ -354,7 +354,8 @@ class nnUNetPredictor(object):
 
                 print(f'perform_everything_on_gpu: {self.perform_everything_on_gpu}')
 
-                properties = preprocessed['data_properties']
+                print("PROPERTIES", preprocessed.keys())
+                properties = preprocessed['data_properites']
 
                 # let's not get into a runaway situation where the GPU predicts so fast that the disk has to b swamped with
                 # npy files
