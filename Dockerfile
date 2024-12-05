@@ -1,6 +1,6 @@
 # Contains pytorch, torchvision, cuda, cudnn
-FROM nvcr.io/nvidia/pytorch:22.04-py3
-#FROM nvcr.io/nvidia/pytorch:23.06-py3 # To new for the f*** cluster
+#FROM nvcr.io/nvidia/pytorch:22.04-py3
+FROM nvcr.io/nvidia/pytorch:23.06-py3 
 MAINTAINER Pedro M. Gordaliza @petermcgor
 
 #nnUnet is set up by default to look at the following dir. I mantain them for reproducibility

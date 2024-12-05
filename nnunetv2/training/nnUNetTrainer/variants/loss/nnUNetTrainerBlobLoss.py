@@ -2,6 +2,7 @@ from typing import Union, Tuple, List
 from batchgenerators.transforms.abstract_transforms import AbstractTransform, Compose
 from batchgenerators.transforms.utility_transforms import NumpyToTensor
 from nnunetv2.training.nnUNetTrainer.nnUNetTrainer import nnUNetTrainer
+from nnunetv2.training.nnUNetTrainer.variants.optimizer.nnUNetTrainerAdam import nnUNetTrainerAdam3en4
 from nnunetv2.training.loss.blob_loss import BlobLoss
 from nnunetv2.training.data_augmentation.custom_transforms.connected_components import (
     ConnectedComponents,
@@ -224,3 +225,7 @@ class nnUNetTrainerBlobLoss(nnUNetTrainer):
                 global_loss_criterium=loss, blob_loss_criterium=loss, trainer=self,scale_weights=weights
             )
         return loss
+    
+
+class nnUNetTrainerBlobLossAdam3en4(nnUNetTrainerBlobLoss,nnUNetTrainerAdam3en4):
+    pass
